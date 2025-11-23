@@ -19,8 +19,13 @@ package v1
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	validationutils "k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -40,11 +45,6 @@ func SetupStateRescueWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// TODO(user): EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-
-// TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
-// NOTE: The 'path' attribute must follow a specific pattern and should not be modified directly here.
-// Modifying the path for an invalid path can cause API server errors; failing to locate the webhook.
 // +kubebuilder:webhook:path=/validate-terraform-hammadzf-github-io-v1-staterescue,mutating=false,failurePolicy=fail,sideEffects=None,groups=terraform.hammadzf.github.io,resources=staterescues,verbs=create;update,versions=v1,name=vstaterescue-v1.kb.io,admissionReviewVersions=v1
 
 // StateRescueCustomValidator struct is responsible for validating the StateRescue resource
@@ -53,7 +53,6 @@ func SetupStateRescueWebhookWithManager(mgr ctrl.Manager) error {
 // NOTE: The +kubebuilder:object:generate=false marker prevents controller-gen from generating DeepCopy methods,
 // as this struct is used only for temporary operations and does not need to be deeply copied.
 type StateRescueCustomValidator struct {
-	// TODO(user): Add more fields as needed for validation
 }
 
 var _ webhook.CustomValidator = &StateRescueCustomValidator{}
@@ -66,9 +65,7 @@ func (v *StateRescueCustomValidator) ValidateCreate(_ context.Context, obj runti
 	}
 	staterescuelog.Info("Validation for StateRescue upon creation", "name", staterescue.GetName())
 
-	// TODO(user): fill in your validation logic upon object creation.
-
-	return nil, nil
+	return nil, validateStateRescue(staterescue)
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type StateRescue.
@@ -79,9 +76,7 @@ func (v *StateRescueCustomValidator) ValidateUpdate(_ context.Context, oldObj, n
 	}
 	staterescuelog.Info("Validation for StateRescue upon update", "name", staterescue.GetName())
 
-	// TODO(user): fill in your validation logic upon object update.
-
-	return nil, nil
+	return nil, validateStateRescue(staterescue)
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type StateRescue.
@@ -92,7 +87,46 @@ func (v *StateRescueCustomValidator) ValidateDelete(ctx context.Context, obj run
 	}
 	staterescuelog.Info("Validation for StateRescue upon deletion", "name", staterescue.GetName())
 
-	// TODO(user): fill in your validation logic upon object deletion.
+	// nothing to validate at delete
 
 	return nil, nil
+}
+
+func validateStateRescue(sr *terraformv1.StateRescue) error {
+	var allErrors field.ErrorList
+	if err := validateStateRescueName(sr); err != nil {
+		allErrors = append(allErrors, err)
+	}
+	if err := validateStateRescueSpec(sr); err != nil {
+		allErrors = append(allErrors, err)
+	}
+	if len(allErrors) == 0 {
+		return nil
+	}
+	return apierrors.NewInvalid(
+		schema.GroupKind{Group: "terraform.hammadzf.github.io", Kind: "StateRescue"},
+		sr.Name, allErrors,
+	)
+}
+
+func validateStateRescueName(sr *terraformv1.StateRescue) *field.Error {
+	if len(sr.Name) > validationutils.DNS1035LabelMaxLength {
+		return field.Invalid(field.NewPath("metadata").Child("name"), sr.Name, "must not be longer than 63 characters")
+	}
+	return nil
+
+}
+
+func validateStateRescueSpec(sr *terraformv1.StateRescue) *field.Error {
+	// The secret name in the StateRescue spec must follow the format `tfstate-{workspace}-{secret_suffix}`
+	// to conform with the nomenclature that Terraform uses for naming secrets containing state file data
+	// (https://developer.hashicorp.com/terraform/language/backend/kubernetes#configuration-variables)
+	sp := strings.Split(sr.Spec.StateSecretName, "-")
+	if len(sp) < 3 {
+		return field.Invalid(field.NewPath("spec").Child("stateSecretName"), sr.Spec.StateSecretName, "does not match the format 'tfstate-{workspace}-{secret_suffix}'")
+	}
+	if sp[0] != "tfstate" {
+		return field.Invalid(field.NewPath("spec").Child("stateSecretName"), sr.Spec.StateSecretName, "does not match the format 'tfstate-{workspace}-{secret_suffix}'")
+	}
+	return nil
 }
