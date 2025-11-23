@@ -36,13 +36,28 @@ In case the Secrets being read/updated by Terraform for keeping state are delete
 ### To Deploy on the cluster
 **Build and push your image to the location specified by `IMG`:**
 
+*Option#1: Remote image registry*
+
 ```sh
 make docker-build docker-push IMG=<some-registry>/tf-state-rescuer:tag
 ```
 
-**NOTE:** This image ought to be published in the personal registry you specified.
-And it is required to have access to pull the image from the working environment.
-Make sure you have the proper permission to the registry if the above commands don’t work.
+>**NOTE:** This image ought to be published in the personal registry you specified.
+>And it is required to have access to pull the image from the working environment.
+>Make sure you have the proper permission to the registry if the above commands don’t work.
+
+*Option#2: Building and loading the image to minikube (for dev and testing)*
+
+Alternatively you can use minikube (or kind) for local dev and testing purposes.
+In that case, you can first create the local image 
+
+```sh
+make docker-build IMG=<IMAGE_NAME>:<IMAGE_TAG>
+minikube image load <IMAGE_NAME>:<IMAGE_TAG>
+```
+
+> **NOTE:**If no image name and tag are given, the Makefile defaults IMG to `controller:latest`.
+> This is also the name and tag used in the manifests for the manager deployment in [config/manager/](./config/manager/).
 
 **Install the CRDs into the cluster:**
 
