@@ -21,51 +21,83 @@ import (
 	. "github.com/onsi/gomega"
 
 	terraformv1 "github.com/hammadzf/tf-state-rescuer/api/v1"
-	// TODO (user): Add any additional imports if needed
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("StateRescue Webhook", func() {
 	var (
-		obj       *terraformv1.StateRescue
-		oldObj    *terraformv1.StateRescue
-		validator StateRescueCustomValidator
+		validObj       *terraformv1.StateRescue
+		newValidObj    *terraformv1.StateRescue
+		invalidNameObj *terraformv1.StateRescue
+		invalidSpecObj *terraformv1.StateRescue
+		validator      StateRescueCustomValidator
 	)
 
-	BeforeEach(func() {
-		obj = &terraformv1.StateRescue{}
-		oldObj = &terraformv1.StateRescue{}
-		validator = StateRescueCustomValidator{}
-		Expect(validator).NotTo(BeNil(), "Expected validator to be initialized")
-		Expect(oldObj).NotTo(BeNil(), "Expected oldObj to be initialized")
-		Expect(obj).NotTo(BeNil(), "Expected obj to be initialized")
-		// TODO (user): Add any setup logic common to all tests
-	})
-
-	AfterEach(func() {
-		// TODO (user): Add any teardown logic common to all tests
-	})
-
 	Context("When creating or updating StateRescue under Validating Webhook", func() {
-		// TODO (user): Add logic for validating webhooks
-		// Example:
-		// It("Should deny creation if a required field is missing", func() {
-		//     By("simulating an invalid creation scenario")
-		//     obj.SomeRequiredField = ""
-		//     Expect(validator.ValidateCreate(ctx, obj)).Error().To(HaveOccurred())
-		// })
-		//
-		// It("Should admit creation if all required fields are present", func() {
-		//     By("simulating an invalid creation scenario")
-		//     obj.SomeRequiredField = "valid_value"
-		//     Expect(validator.ValidateCreate(ctx, obj)).To(BeNil())
-		// })
-		//
-		// It("Should validate updates correctly", func() {
-		//     By("simulating a valid update scenario")
-		//     oldObj.SomeRequiredField = "updated_value"
-		//     obj.SomeRequiredField = "updated_value"
-		//     Expect(validator.ValidateUpdate(ctx, oldObj, obj)).To(BeNil())
-		// })
+		It("Should deny creation of StateRescue object if its name is not a valid DNS subdomain name", func() {
+			By("simulating creation of StateRescue object with invalid name")
+			invalidNameObj = &terraformv1.StateRescue{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "terraform.hammadzf.github.io/v1",
+					Kind:       "StateRescue",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "!invalid-name",
+				},
+				Spec: terraformv1.StateRescueSpec{
+					StateSecretName: "tf-default-state",
+				},
+			}
+			Expect(validator.ValidateCreate(ctx, invalidNameObj)).Error().To(HaveOccurred())
+		})
+		It("Should deny creation of StateRescue object if the Terraform state secret name in its spec is not in a valid format", func() {
+			By("simulating creation of StateRescue object with invalid spec")
+			invalidSpecObj = &terraformv1.StateRescue{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "terraform.hammadzf.github.io/v1",
+					Kind:       "StateRescue",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "valid-name",
+				},
+				Spec: terraformv1.StateRescueSpec{
+					StateSecretName: "terraform-default-state",
+				},
+			}
+			Expect(validator.ValidateCreate(ctx, invalidSpecObj)).Error().To(HaveOccurred())
+		})
+		It("Should admit creation of StateRescue object if the name and spec are valid", func() {
+			By("simulating a valid creation scenario")
+			validObj = &terraformv1.StateRescue{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "terraform.hammadzf.github.io/v1",
+					Kind:       "StateRescue",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "valid-name",
+				},
+				Spec: terraformv1.StateRescueSpec{
+					StateSecretName: "tfstate-default-state",
+				},
+			}
+			Expect(validator.ValidateCreate(ctx, validObj)).To(BeNil())
+		})
+		It("Should validate updates correctly", func() {
+			By("simulating a valid update scenario")
+			newValidObj = &terraformv1.StateRescue{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "terraform.hammadzf.github.io/v1",
+					Kind:       "StateRescue",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "valid-name",
+				},
+				Spec: terraformv1.StateRescueSpec{
+					StateSecretName: "tfstate-default-state-0",
+				},
+			}
+			Expect(validator.ValidateUpdate(ctx, validObj, newValidObj)).To(BeNil())
+		})
 	})
 
 })

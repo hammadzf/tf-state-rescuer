@@ -39,7 +39,7 @@ var _ = Describe("StateRescue Controller", func() {
 		duration             = time.Second * 10
 		interval             = time.Millisecond * 250
 	)
-	Context("When updating StateResuce status", func() {
+	Context("When updating StateRescue status", func() {
 		It("Should update LastBackupTime and LastRescueTime when TF state secrets are backed up and rescued", func() {
 			By("By creating a new StateRescue resource")
 			ctx := context.Background()
