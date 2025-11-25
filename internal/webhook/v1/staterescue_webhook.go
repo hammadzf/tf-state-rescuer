@@ -110,8 +110,13 @@ func validateStateRescue(sr *terraformv1.StateRescue) error {
 }
 
 func validateStateRescueName(sr *terraformv1.StateRescue) *field.Error {
-	if len(sr.Name) > validationutils.DNS1035LabelMaxLength {
-		return field.Invalid(field.NewPath("metadata").Child("name"), sr.Name, "must not be longer than 63 characters")
+	// Name of an object whose kind/resource is defined by a CRD must also be a valid DNS subdomain name
+	// (https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/#customresourcedefinitions)
+	// Check that the name of the custom resource object conforms to DNS Subdomain Names
+	// constraints as defined in RFC1123 (https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-subdomain-names)
+	errs := validationutils.IsDNS1123Subdomain(sr.Name)
+	if len(errs) != 0 {
+		return field.Invalid(field.NewPath("metadata").Child("name"), sr.Name, "must be a valid DNS subdomain name")
 	}
 	return nil
 

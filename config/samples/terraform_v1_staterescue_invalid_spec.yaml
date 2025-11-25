@@ -1,0 +1,9 @@
+apiVersion: terraform.hammadzf.github.io/v1
+kind: StateRescue
+metadata:
+  labels:
+    app.kubernetes.io/name: tf-state-rescuer
+    app.kubernetes.io/managed-by: kustomize
+  name: staterescue-invalid-spec
+spec:
+  stateSecretName: "terraform-state-default-state"
