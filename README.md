@@ -6,6 +6,7 @@ TF State Rescuer is a Kubernetes operator that backs up Kubernetes Secrets conta
 ## Description
 The TF State Rescuer operator is built using [kubebuilder](https://book.kubebuilder.io/). A custom resource called StateRescue is used to specify the name of Terraform state Secret(s) that the corresponding controller should monitor for backup and rescue. This name should match the naming convention that Terraform uses for creating Kubernetes Secrets when the Kubernetes backend is used to store state remotely, which is `tfstate-{workspace}-{secret_suffix}` and the `secret-suffix` is the one which is specified by the Terraform user when configuring the Kubernetes backend. Refer to [Terraform documentation](https://developer.hashicorp.com/terraform/language/backend/kubernetes) for configuring a Kubernetes backend.
 
+### Example manifest for StateRescue resource
 An example YAML manifest for a StateRescue resource is provided below:  
 ```yaml
 apiVersion: terraform.hammadzf.github.io/v1
@@ -20,26 +21,38 @@ spec:
   stateSecretName: "tfstate-default-state"
 ```
 
-Once this StateRescue resource is created, the controller will monitor the corresponding Kubernetes Secret(s) containing state files for the Terraform project that is using the Kubernetes backend. In the above example, the controller looks for Secrets in the 'terraform' namespace as this is the namespace where the StateRescue resource is created. These Secrets are backed up by creating copies in the same namespace, and the LastBackupTime field in StateRescue resource's Status is updated accordingly. The controller looks out for any changes made in the Secret(s) containing Terraform state and updates backup Secrets accordingly in order to keep the latest state. 
+### How does it work?
+Once this StateRescue resource is created, the controller will monitor the corresponding Kubernetes Secret(s) containing state files for the Terraform project that is using the Kubernetes backend. In the above example, the controller looks for Secrets in the 'terraform' namespace as this is the namespace where the StateRescue resource is created. These Secrets are backed up by creating copies in the same namespace, and the `LastBackupTime` field in StateRescue resource's Status is updated accordingly. The controller looks out for any changes made in the Secret(s) containing Terraform state and updates backup Secrets accordingly in order to keep the latest state. 
 
-In case the Secrets being read/updated by Terraform for keeping state are deleted for some reason, the controller rescues Terraform state from the the backup Secrets, and the LastRescueTime field in StateRescue's Status is updated accordingly.
+In case the Secrets being read/updated by Terraform for keeping state are deleted for some reason, the controller rescues Terraform state from the the backup Secrets, and the `LastRescueTime` field in StateRescue's Status is updated accordingly.
+
+### Admission Controller (ValidatingAdmissionWebhook)
+The controller manager for this operator also implements a validation webhook for admission control. It validates incoming (Create and Update) requests to the API server for the StateRescue custom resource. Two kinds of validation are performed, one on the name of the object of StateRescue custom resource and the other regarding its specification. 
+- Name: Name of an object whose kind/resource is defined by a CRD must also be a valid DNS subdomain name ([source](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/#customresourcedefinitions)).
+- Spec: The secret name in the StateRescue spec must follow the format `tfstate-{workspace}-{secret_suffix}` to conform with the nomenclature that Terraform uses for naming secrets containing state file data ([source](https://developer.hashicorp.com/terraform/language/backend/kubernetes#configuration-variables)).
+
+The working of the validation webhook can be verified by attempting to create StateRescue objects with invalid name and spec using manifests in [config/samples](./config/samples/).
 
 
 ## Getting Started
 
 ### Prerequisites
 - go version v1.24.0+
-- docker version 17.03+.
-- kubectl version v1.11.3+.
-- Access to a Kubernetes v1.11.3+ cluster.
+- docker version 17.03+
+- kubectl version v1.11.3+
+- Access to a Kubernetes v1.11.3+ cluster
+- cert-manager installed on the Kubernetes cluster (for webhooks)
 
 ### To Deploy on the cluster
+**Install cert-manager**
+You can follow the [cert-manager documentation](https://cert-manager.io/docs/installation/) to install it.
+
 **Build and push your image to the location specified by `IMG`:**
 
 *Option#1: Remote image registry*
 
 ```sh
-make docker-build docker-push IMG=<some-registry>/tf-state-rescuer:tag
+make docker-build docker-push IMG=<some-registry>/<IMAGE_NAME>:<IMAGE_TAG>
 ```
 
 >**NOTE:** This image ought to be published in the personal registry you specified.
@@ -68,7 +81,7 @@ make install
 **Deploy the Manager to the cluster with the image specified by `IMG`:**
 
 ```sh
-make deploy IMG=<some-registry>/tf-state-rescuer:tag
+make deploy IMG=<some-registry>/<IMAGE_NAME>:<IMAGE_TAG>
 ```
 
 > **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
@@ -78,7 +91,7 @@ privileges or be logged in as admin.
 You can apply the samples (examples) from the config/sample:
 
 ```sh
-kubectl apply -k config/samples/
+kubectl apply -k config/samples/terraform_v1_staterescue.yaml
 ```
 
 >**NOTE**: Ensure that the samples has default values to test it out.
@@ -87,7 +100,7 @@ kubectl apply -k config/samples/
 **Delete the instances (CRs) from the cluster:**
 
 ```sh
-kubectl delete -k config/samples/
+kubectl delete -k config/samples/terraform_v1_staterescue.yaml
 ```
 
 **Delete the APIs(CRDs) from the cluster:**
@@ -101,6 +114,9 @@ make uninstall
 ```sh
 make undeploy
 ```
+
+**Uninstall the cert-manager**
+You can follow the [cert-manager documentation](https://cert-manager.io/docs/installation/kubectl/#uninstalling) to uninstall it.
 
 ## Project Distribution
 
