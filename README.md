@@ -29,7 +29,7 @@ In case the Secrets being read/updated by Terraform for keeping state are delete
 ### Admission Controller (ValidatingAdmissionWebhook)
 The controller manager for this operator also implements a validation webhook for admission control. It validates incoming (Create and Update) requests to the API server for the StateRescue custom resource. Two kinds of validation are performed, one on the name of the object of StateRescue custom resource and the other regarding its specification. 
 - Name: Name of an object whose kind/resource is defined by a CRD must also be a valid DNS subdomain name ([source](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/#customresourcedefinitions)).
-- Spec: The secret name in the StateRescue spec must follow the format `tfstate-{workspace}-{secret_suffix}` to conform with the nomenclature that Terraform uses for naming secrets containing state file data (source[](https://developer.hashicorp.com/terraform/language/backend/kubernetes#configuration-variables)).
+- Spec: The secret name in the StateRescue spec must follow the format `tfstate-{workspace}-{secret_suffix}` to conform with the nomenclature that Terraform uses for naming secrets containing state file data ([source](https://developer.hashicorp.com/terraform/language/backend/kubernetes#configuration-variables)).
 
 The working of the validation webhook can be verified by attempting to create StateRescue objects with invalid name and spec using manifests in [config/samples](./config/samples/).
 
