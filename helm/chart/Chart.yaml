@@ -1,0 +1,7 @@
+apiVersion: v2
+name: tf-state-rescuer
+description: A Helm chart to distribute the project tf-state-rescuer
+type: application
+version: 0.1.0
+appVersion: "1.0"
+icon: "https://example.com/icon.png"

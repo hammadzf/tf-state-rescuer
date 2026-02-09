@@ -6,6 +6,8 @@ cliVersion: 4.7.0
 domain: hammadzf.github.io
 layout:
 - go.kubebuilder.io/v4
+plugins:
+  helm.kubebuilder.io/v1-alpha: {}
 projectName: tf-state-rescuer
 repo: github.com/hammadzf/tf-state-rescuer
 resources:
