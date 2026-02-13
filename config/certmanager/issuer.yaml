@@ -8,6 +8,6 @@ metadata:
     app.kubernetes.io/name: tf-state-rescuer
     app.kubernetes.io/managed-by: kustomize
   name: selfsigned-issuer
-  namespace: system
+  namespace: tf-state-rescuer-system
 spec:
   selfSigned: {}
