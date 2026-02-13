@@ -56,7 +56,7 @@ crd:
   # the Helm release is uninstalled.
   # NOTE: Removing the CRDs will also remove all cert-manager CR(s)
   # (Certificates, Issuers, ...) due to garbage collection.
-  keep: true
+  keep: false
 
 # [METRICS]: Set to true to generate manifests for exporting metrics.
 # To disable metrics export set false, and ensure that the

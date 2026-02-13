@@ -78,6 +78,9 @@ minikube image load tf-rescuer:stable-1.0
 ```sh
 helm install <release-name> ./helm/chart/
 ```
+
+> NOTE: If you choose to specify a namespace while deploying the tf-state-rescuer chart, make sure it's the namespace that also stores your TF statefiles (as Secrets) and the StateRescue CRs should also be created in the same namespace.
+
 **Create StateRescue resources**
 
 To create a sample StateRescue custom resource, you can apply the samples (examples) from the config/sample:
@@ -86,24 +89,18 @@ To create a sample StateRescue custom resource, you can apply the samples (examp
 kubectl apply -k config/samples/terraform_v1_staterescue.yaml
 ```
 
-### To Uninstall
+### To uninstall and remove CRs
 
-**Delete the instances (CRs) from the cluster:**
+**Delete the created StateRescue instances (CRs) from the cluster:**
 
 ```sh
 kubectl delete -k config/samples/terraform_v1_staterescue.yaml
 ```
 
-**Delete the APIs(CRDs) and controller (plus other K8s resources) from the cluster:**
+**Delete the APIs (CRDs), manager (controller) and other K8s resources from the cluster:**
 
 ```sh
 helm uninstall <release-name>
-```
-
-**Delete the CRDs from the cluster:**
-
-```sh
-make uninstall
 ```
 
 **Uninstall the cert-manager**
